@@ -1,0 +1,21 @@
+---
+description: Run a command as a restricted user
+parameters:
+  command_name:
+    description: The name of the step to run
+    type: string
+    default: run_command - <<parameters.username>>
+  username:
+    description: The username of an account which the command should be run as
+    default: distiller-restricted
+    type: string
+  command:
+    description: The command to run
+    type: string
+steps:
+  - run:
+      name: <<parameters.command_name>>
+      environment:
+        PARAM_USERNAME: <<parameters.username>>
+        PARAM_COMMAND: <<parameters.command>>
+      command: <<include(scripts/run_command.sh)>>
