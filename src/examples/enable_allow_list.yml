@@ -4,7 +4,7 @@ description: >
 usage:
   version: 2.1
   orbs:
-    mac-ip-allow-list: circleci/mac-ip-allow-list@0.0.1
+    mac-ip-allow-list: circleci/mac-ip-allow-list@0.1.0
   parameters:
     username:
       description: The username for the standard user account
