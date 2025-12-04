@@ -1,0 +1,65 @@
+version: 2.1
+setup: true
+orbs:
+  orb-tools: circleci/orb-tools@12.3
+  shellcheck: circleci/shellcheck@3.2
+  bats: circleci/bats@1.1
+
+filters: &filters
+  tags:
+    only: /.*/
+
+executors:
+  docker-medium:
+    docker:
+      - image: cimg/base:current-24.04
+    resource_class: small
+
+commands:
+  setup-bats-extras:
+    steps:
+      - run:
+          name: Setup bats extras
+          command: |
+            mkdir -p ./src/tests/helpers
+            cd ./src/tests/helpers
+
+            git config --global advice.detachedHead false
+            git clone -q --depth 1 --branch v0.3.0 https://github.com/bats-core/bats-support
+            git clone -q --depth 1 --branch v2.2.4 https://github.com/bats-core/bats-assert
+            git clone -q --depth 1 --branch v0.4.0 https://github.com/bats-core/bats-file
+            git clone -q --depth 1 --branch v2.2.0 https://github.com/buildkite-plugins/bats-mock
+
+workflows:
+  lint-pack:
+    jobs:
+      - orb-tools/lint:
+          filters: *filters
+      - orb-tools/pack:
+          filters: *filters
+      - orb-tools/review:
+          orb_name: <orb-name>
+          filters: *filters
+      - shellcheck/check:
+          filters: *filters
+      - bats/run:
+          filters: *filters
+          exec_environment: docker-medium
+          setup-steps:
+            - setup-bats-extras
+          path: ./src/tests
+          formatter: pretty
+          save_test_results: false
+      - orb-tools/continue:
+          pipeline_number: << pipeline.number >>
+          vcs_type: << pipeline.project.type >>
+          orb_name: mac-ip-allowlist
+          requires:
+            [
+              orb-tools/lint,
+              orb-tools/pack,
+              orb-tools/review,
+              shellcheck/check,
+              bats/run,
+            ]
+          filters: *filters

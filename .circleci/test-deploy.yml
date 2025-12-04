@@ -1,0 +1,78 @@
+version: 2.1
+orbs:
+  orb-tools: circleci/orb-tools@12.3
+  mac-ip-allowlist: {}
+
+filters: &filters
+  tags:
+    only: /.*/
+
+release-filters: &release-filters
+  branches:
+    ignore: /.*/
+  tags:
+    only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+
+jobs:
+  integration-test:
+    parameters:
+      image:
+        type: string
+    macos:
+      xcode: << parameters.image >>
+    resource_class: m4pro.medium
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: |
+            echo "1.1.1.1/32" > /tmp/passlist
+            echo "192.168.4.0/22" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - run:
+          name: Verify pf table
+          command: |
+            table_contents=$(sudo pfctl -t passlist -T show 2>&1 | awk '!/ALTQ/' | tr -d ' ')
+            expected="1.1.1.1
+            192.168.4.0/22"
+            expected=$(echo "$expected" | tr -d ' ')
+            if [ "$table_contents" = "$expected" ]; then
+              echo "Passlist table matches expected contents"
+            else
+              echo "Passlist table does not match expected contents"
+              echo "Expected:"
+              echo "$expected"
+              echo "Got:"
+              echo "$table_contents"
+              exit 1
+            fi
+      - run:
+          name: Test connectivity - distiller
+          command: curl -v -i https://app.circleci.com
+      - mac-ip-allowlist/run_command:
+          command_name: "Test connectivity - distiller-restricted"
+          command: curl -v -i https://1.1.1.1
+
+workflows:
+  test-deploy:
+    jobs:
+      - integration-test:
+          filters: *filters
+          matrix:
+            parameters:
+              image: [15.4.0, 16.4.0, 26.0.0, 26.1.1]
+      - orb-tools/pack:
+          filters: *release-filters
+      - orb-tools/publish:
+          circleci_ip_ranges: true
+          enable_pr_comment: false
+          orb_name: circelci/mac-ip-allowlist
+          vcs_type: << pipeline.project.type >>
+          pub_type: production
+          requires:
+            - orb-tools/pack
+            - integration-test
+          context: orb-publisher
+          filters: *release-filters
+

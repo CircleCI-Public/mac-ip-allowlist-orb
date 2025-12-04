@@ -1,0 +1,30 @@
+---
+description: Create a standard user account to run steps with
+parameters:
+  username:
+    description: The username for the standard user account
+    default: distiller-restricted
+    type: string
+  passlist_file:
+    description: |
+      Absolute location of a passlist file containing IP addresses
+      to allow, one per line
+    type: string
+steps:
+  - run:
+      name: Platform check
+      command: <<include(scripts/platform_check.sh)>>
+  - run:
+      name: Create User
+      environment:
+        PARAM_USERNAME: <<parameters.username>>
+      command: <<include(scripts/create_user.sh)>>
+  - run:
+      name: Setup PF configuration
+      environment:
+        PARAM_USERNAME: <<parameters.username>>
+        PARAM_PASSLIST: <<parameters.passlist_file>>
+      command: <<include(scripts/setup_pf.sh)>>
+  - run:
+      name: Enable PF Firewall
+      command: <<include(scripts/enable.sh)>>

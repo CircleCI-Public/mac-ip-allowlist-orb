@@ -1,0 +1,9 @@
+---
+version: 2.1
+
+description: >
+  This orb provides a set of commands to configure an IP allow list
+  for your Mac VM
+
+display:
+  source_url: https://github.com/CircleCI-Public/mac-ip-allowlist-orb

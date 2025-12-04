@@ -1,0 +1,27 @@
+---
+description: >
+  Add an IP address to the allow list for your Mac VM
+usage:
+  version: 2.1
+  orbs:
+    mac-ip-allow-list: circleci/mac-ip-allow-list@0.0.1
+  parameters:
+    username:
+      description: The username for the standard user account
+      default: ip-restricted-user
+  jobs:
+    build-test:
+      macos:
+        xcode: 26.1.1
+      steps:
+        - run:
+            name: Create passlist
+            command: |
+              echo "34.197.216.176/32" >> /tmp/passlist
+              echo "52.3.128.0/24" >> /tmp/passlist
+        - mac-ip-allow-list/setup:
+            passlist_file: /tmp/passlist
+        - mac-ip-allow-list/run_command:
+            command_name: Hello World
+            command: |
+              echo "Hello, World!"
