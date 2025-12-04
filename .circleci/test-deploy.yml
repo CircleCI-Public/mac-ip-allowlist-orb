@@ -67,7 +67,7 @@ workflows:
       - orb-tools/publish:
           circleci_ip_ranges: true
           enable_pr_comment: false
-          orb_name: circelci/mac-ip-allowlist
+          orb_name: circleci/mac-ip-allowlist
           vcs_type: << pipeline.project.type >>
           pub_type: production
           requires:
@@ -75,4 +75,3 @@ workflows:
             - integration-test
           context: orb-publisher
           filters: *release-filters
-
