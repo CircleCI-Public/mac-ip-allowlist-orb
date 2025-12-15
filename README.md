@@ -6,7 +6,7 @@ An orb for building an IP allow list for CircleCI macOS Executors.
 
 ## Resources
 
-[CircleCI Orb Registry Page](https://circleci.com/orbs/registry/orb/circleci/macos) - The official registry page of this orb for all versions, executors, commands, and jobs described.
+[CircleCI Orb Registry Page](https://circleci.com/orbs/registry/orb/circleci/mac-ip-allowlist) - The official registry page of this orb for all versions, executors, commands, and jobs described.
 
 **To publish a new production version:**
 
