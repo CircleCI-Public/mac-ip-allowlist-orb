@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 
-set -e
-
-if [[ -z "$CIRCLE_WORKING_DIRECTORY" ]]; then
+# Check required variables before enabling strict mode (to provide friendly error messages)
+if [[ -z "${CIRCLE_WORKING_DIRECTORY:-}" ]]; then
   echo "Error: CIRCLE_WORKING_DIRECTORY is not set"
   exit 1
 fi
 
-if [[ -z "$PARAM_USERNAME" ]]; then
+if [[ -z "${PARAM_USERNAME:-}" ]]; then
   echo "Error: PARAM_USERNAME is not set"
   exit 1
 fi
+
+set -euo pipefail
 
 # Expand ~ if present (CircleCI uses ~/project as default)
 WORK_DIR="${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}"
