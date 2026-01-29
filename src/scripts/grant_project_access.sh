@@ -21,6 +21,12 @@ if [[ ! -d "$WORK_DIR" ]]; then
   exit 1
 fi
 
+# Validate user exists before proceeding
+if ! id "$PARAM_USERNAME" &>/dev/null; then
+  echo "Error: User does not exist: $PARAM_USERNAME"
+  exit 1
+fi
+
 GROUP_NAME="circleci-project"
 
 echo "Creating shared group '$GROUP_NAME'..."

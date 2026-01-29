@@ -3,6 +3,8 @@
 source ./src/tests/helpers/load_extensions.bash
 
 @test "grant_project_access succeeds with valid directory" {
+  stub id \
+    "distiller-restricted : exit 0"
   stub sudo \
     "dseditgroup -o create \* : echo 'group created'" \
     "dseditgroup -o edit -a \* -t user \* : echo \$5 > ${BATS_TEST_TMPDIR}/added_user" \
@@ -22,12 +24,15 @@ source ./src/tests/helpers/load_extensions.bash
   assert_file_contains "${BATS_TEST_TMPDIR}"/added_user "distiller-restricted"
   assert_file_contains "${BATS_TEST_TMPDIR}"/chgrp_group "circleci-project"
 
+  unstub id
   unstub sudo
 }
 
 @test "grant_project_access expands tilde in path" {
   mkdir -p "${BATS_TEST_TMPDIR}/project"
 
+  stub id \
+    "distiller-restricted : exit 0"
   stub sudo \
     "dseditgroup -o create \* : echo 'group created'" \
     "dseditgroup -o edit -a \* -t user \* : true" \
@@ -43,6 +48,7 @@ source ./src/tests/helpers/load_extensions.bash
   assert_success
   assert_file_contains "${BATS_TEST_TMPDIR}"/chgrp_target "${BATS_TEST_TMPDIR}/project"
 
+  unstub id
   unstub sudo
 }
 
@@ -75,4 +81,20 @@ source ./src/tests/helpers/load_extensions.bash
 
   assert_failure
   assert_output --partial "Project directory does not exist"
+}
+
+@test "grant_project_access fails when user does not exist" {
+  stub id \
+    "nonexistent-user : exit 1"
+
+  export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
+  export HOME="${BATS_TEST_TMPDIR}"
+  export PARAM_USERNAME="nonexistent-user"
+
+  run ./src/scripts/grant_project_access.sh
+
+  assert_failure
+  assert_output --partial "User does not exist: nonexistent-user"
+
+  unstub id
 }
