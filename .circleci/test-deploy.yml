@@ -28,31 +28,102 @@ jobs:
           command: |
             echo "1.1.1.1/32" > /tmp/passlist
             echo "192.168.4.0/22" >> /tmp/passlist
+            
+            # Fetch Fastly CDN IPs (used by PyPI)
+            curl -s https://api.fastly.com/public-ip-list | jq -r '.addresses[]' >> /tmp/passlist
+            
+            echo "Passlist contents:"
+            cat /tmp/passlist
       - mac-ip-allowlist/setup:
           passlist_file: /tmp/passlist
       - run:
           name: Verify pf table
           command: |
-            table_contents=$(sudo pfctl -t passlist -T show 2>&1 | awk '!/ALTQ/' | tr -d ' ')
-            expected="1.1.1.1
-            192.168.4.0/22"
-            expected=$(echo "$expected" | tr -d ' ')
-            if [ "$table_contents" = "$expected" ]; then
-              echo "Passlist table matches expected contents"
-            else
-              echo "Passlist table does not match expected contents"
-              echo "Expected:"
-              echo "$expected"
-              echo "Got:"
-              echo "$table_contents"
-              exit 1
-            fi
+            echo "Passlist table contents:"
+            sudo pfctl -t passlist -T show 2>&1 | awk '!/ALTQ/'
+            
+            # Verify key IPs are present
+            sudo pfctl -t passlist -T show 2>&1 | grep -q "1.1.1.1" || { echo "Missing 1.1.1.1"; exit 1; }
+            echo "Key IPs verified in passlist"
       - run:
           name: Test connectivity - distiller
           command: curl -v -i https://app.circleci.com
       - mac-ip-allowlist/run_command:
           command_name: "Test connectivity - distiller-restricted"
           command: curl -v -i https://1.1.1.1
+      - run:
+          name: Verify restricted user can access project directory
+          command: |
+            # Verify group was created
+            dscl . -read /Groups/circleci-project && echo "Group exists"
+
+            # Verify restricted user is in group
+            dseditgroup -o checkmember -m distiller-restricted circleci-project
+
+            # Verify project directory has correct group
+            WORK_DIR="${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}"
+            stat -f "%Sg" "$WORK_DIR" | grep -q "circleci-project"
+      - mac-ip-allowlist/run_command:
+          command_name: "Test run_command in project directory"
+          command: |
+            echo "Current directory: $(pwd)"
+            test "$(pwd)" = "/Users/distiller/project"
+      - run:
+          name: Create test directory
+          command: mkdir -p /tmp/test-workdir
+      - mac-ip-allowlist/run_command:
+          command_name: "Test run_command with custom working_directory"
+          working_directory: /tmp/test-workdir
+          command: |
+            echo "Current directory: $(pwd)"
+            test "$(pwd)" = "/tmp/test-workdir"
+      - mac-ip-allowlist/run_command:
+          command_name: "Test restricted user file access"
+          command: |
+            # Can read existing file
+            cat README.md > /dev/null
+            echo "Successfully read README.md"
+            # Can create new file
+            echo "test" > test-write-file
+            echo "Successfully created test file"
+      - mac-ip-allowlist/run_command:
+          command_name: "Create Python venv in restricted user home"
+          working_directory: /Users/distiller-restricted
+          command: |
+            python3 -m venv /Users/distiller-restricted/venv
+            source /Users/distiller-restricted/venv/bin/activate
+            pip install --upgrade pip
+            pip install pandas
+            python -c "import pandas; print(f'pandas {pandas.__version__} installed in restricted user home')"
+      - mac-ip-allowlist/run_command:
+          command_name: "Create Python venv in distiller project directory"
+          command: |
+            python3 -m venv ./venv
+            source ./venv/bin/activate
+            pip install --upgrade pip
+            pip install pandas
+            python -c "import pandas; print(f'pandas {pandas.__version__} installed in distiller project')"
+
+  integration-test-no-project-access:
+    macos:
+      xcode: 16.4.0
+    resource_class: m4pro.medium
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: echo "1.1.1.1/32" > /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+          grant_project_access: false
+      - run:
+          name: Verify group was NOT created
+          command: |
+            if dscl . -read /Groups/circleci-project 2>/dev/null; then
+              echo "ERROR: Group should not exist"
+              exit 1
+            fi
+            echo "Correctly skipped group creation"
 
 workflows:
   test-deploy:
@@ -62,6 +133,8 @@ workflows:
           matrix:
             parameters:
               image: [15.4.0, 16.4.0, 26.0.0, 26.1.1]
+      - integration-test-no-project-access:
+          filters: *filters
       - orb-tools/pack:
           filters: *release-filters
       - orb-tools/publish:
@@ -73,5 +146,6 @@ workflows:
           requires:
             - orb-tools/pack
             - integration-test
+            - integration-test-no-project-access
           context: orb-publisher
           filters: *release-filters

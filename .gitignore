@@ -1,0 +1,5 @@
+# Bats test helpers (cloned locally, installed in CI)
+src/tests/helpers/bats-assert/
+src/tests/helpers/bats-file/
+src/tests/helpers/bats-mock/
+src/tests/helpers/bats-support/
