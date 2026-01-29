@@ -98,3 +98,14 @@ source ./src/tests/helpers/load_extensions.bash
 
   unstub id
 }
+
+@test "grant_project_access fails when directory resolves to root" {
+  export CIRCLE_WORKING_DIRECTORY="/"
+  export HOME="/tmp"
+  export PARAM_USERNAME="distiller-restricted"
+
+  run ./src/scripts/grant_project_access.sh
+
+  assert_failure
+  assert_output --partial "Cannot grant access to root directory"
+}

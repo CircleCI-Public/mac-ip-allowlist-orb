@@ -21,6 +21,15 @@ if [[ ! -d "$WORK_DIR" ]]; then
   exit 1
 fi
 
+# Canonicalize path to resolve symlinks and relative components
+WORK_DIR="$(cd -- "$WORK_DIR" && pwd -P)"
+
+# Guard against root directory to prevent catastrophic permission changes
+if [[ "$WORK_DIR" == "/" ]]; then
+  echo "Error: Cannot grant access to root directory"
+  exit 1
+fi
+
 # Validate user exists before proceeding
 if ! id "$PARAM_USERNAME" &>/dev/null; then
   echo "Error: User does not exist: $PARAM_USERNAME"
