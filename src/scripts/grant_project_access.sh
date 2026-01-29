@@ -45,9 +45,11 @@ echo "Adding '$PARAM_USERNAME' to group '$GROUP_NAME'..."
 sudo dseditgroup -o edit -a "$PARAM_USERNAME" -t user "$GROUP_NAME"
 
 echo "Setting group ownership on project directory..."
+# -R defaults to -P on macOS (don't follow symlinks during traversal)
 sudo chgrp -R "$GROUP_NAME" "$WORK_DIR"
 
 echo "Granting group read/write/execute access..."
+# -R defaults to -P on macOS (don't follow symlinks during traversal)
 sudo chmod -R g+rwX "$WORK_DIR"
 
 echo "Access granted to $WORK_DIR via group '$GROUP_NAME'"

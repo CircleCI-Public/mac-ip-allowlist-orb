@@ -109,3 +109,29 @@ source ./src/tests/helpers/load_extensions.bash
   assert_failure
   assert_output --partial "Cannot grant access to root directory"
 }
+
+@test "grant_project_access uses -R without -L to avoid symlink traversal" {
+  # On macOS, -R defaults to -P (no symlink following)
+  # Verify the script does NOT use -L (which would follow symlinks)
+  stub id \
+    "distiller-restricted : exit 0"
+  stub sudo \
+    "dseditgroup -o create \* : true" \
+    "dseditgroup -o edit -a \* -t user \* : true" \
+    "chgrp -R \* \* : echo 'chgrp_called' > ${BATS_TEST_TMPDIR}/chgrp_flag" \
+    "chmod -R g+rwX \* : echo 'chmod_called' > ${BATS_TEST_TMPDIR}/chmod_flag"
+
+  export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
+  export HOME="${BATS_TEST_TMPDIR}"
+  export PARAM_USERNAME="distiller-restricted"
+
+  run ./src/scripts/grant_project_access.sh
+
+  assert_success
+  # Verify chgrp and chmod are called with -R (defaults to -P on macOS, no symlink following)
+  assert_file_contains "${BATS_TEST_TMPDIR}/chgrp_flag" "chgrp_called"
+  assert_file_contains "${BATS_TEST_TMPDIR}/chmod_flag" "chmod_called"
+
+  unstub id
+  unstub sudo
+}
