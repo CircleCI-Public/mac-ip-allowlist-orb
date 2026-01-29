@@ -10,9 +10,12 @@ WORK_DIR="${PARAM_WORKING_DIR:-$CIRCLE_WORKING_DIRECTORY}"
 WORK_DIR="${WORK_DIR/#\~/$HOME}"
 
 if [[ -n "$WORK_DIR" ]]; then
-  sudo -u "$PARAM_USERNAME" bash -c "cd '$WORK_DIR' && $PARAM_COMMAND"
+  # Use arg-passing pattern to safely handle paths with special characters
+  # -H sets HOME to target user's home directory
+  # cd -- handles paths starting with -
+  sudo -H -u "$PARAM_USERNAME" bash -c 'cd -- "$1" && eval "$2"' _ "$WORK_DIR" "$PARAM_COMMAND"
 else
-  sudo -u "$PARAM_USERNAME" bash <<EOF
+  sudo -H -u "$PARAM_USERNAME" bash <<EOF
 $PARAM_COMMAND
 EOF
 fi
