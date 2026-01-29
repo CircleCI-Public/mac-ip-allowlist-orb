@@ -10,6 +10,13 @@ parameters:
       Absolute location of a passlist file containing IP addresses
       to allow, one per line
     type: string
+  grant_project_access:
+    description: |
+      Grant the restricted user read/write/execute access to the project
+      directory (CIRCLE_WORKING_DIRECTORY). This is required for the
+      restricted user to access checked-out code and dependencies.
+    type: boolean
+    default: true
 steps:
   - run:
       name: Platform check
@@ -28,3 +35,11 @@ steps:
   - run:
       name: Enable PF Firewall
       command: <<include(scripts/enable.sh)>>
+  - when:
+      condition: <<parameters.grant_project_access>>
+      steps:
+        - run:
+            name: Grant project directory access
+            environment:
+              PARAM_USERNAME: <<parameters.username>>
+            command: <<include(scripts/grant_project_access.sh)>>
