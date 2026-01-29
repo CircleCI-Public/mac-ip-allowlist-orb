@@ -54,15 +54,17 @@ jobs:
       - run:
           name: Verify restricted user can access project directory
           command: |
-            # Verify group was created
-            dscl . -read /Groups/circleci-project && echo "Group exists"
+            GROUP_NAME="circleci-project-${CIRCLE_WORKFLOW_ID}"
+
+            # Verify group was created (dynamic name based on workflow ID)
+            dscl . -read /Groups/"$GROUP_NAME" && echo "Group exists"
 
             # Verify restricted user is in group
-            dseditgroup -o checkmember -m distiller-restricted circleci-project
+            dseditgroup -o checkmember -m distiller-restricted "$GROUP_NAME"
 
             # Verify project directory has correct group
             WORK_DIR="${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}"
-            stat -f "%Sg" "$WORK_DIR" | grep -q "circleci-project"
+            stat -f "%Sg" "$WORK_DIR" | grep -q "$GROUP_NAME"
       - mac-ip-allowlist/run_command:
           command_name: "Test run_command in project directory"
           command: |
@@ -119,7 +121,8 @@ jobs:
       - run:
           name: Verify group was NOT created
           command: |
-            if dscl . -read /Groups/circleci-project 2>/dev/null; then
+            GROUP_NAME="circleci-project-${CIRCLE_WORKFLOW_ID}"
+            if dscl . -read /Groups/"$GROUP_NAME" 2>/dev/null; then
               echo "ERROR: Group should not exist"
               exit 1
             fi

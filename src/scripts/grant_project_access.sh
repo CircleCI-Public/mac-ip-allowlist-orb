@@ -11,6 +11,11 @@ if [[ -z "${PARAM_USERNAME:-}" ]]; then
   exit 1
 fi
 
+if [[ -z "${CIRCLE_WORKFLOW_ID:-}" ]]; then
+  echo "Error: CIRCLE_WORKFLOW_ID is not set"
+  exit 1
+fi
+
 set -euo pipefail
 
 # Expand ~ if present (CircleCI uses ~/project as default)
@@ -36,7 +41,8 @@ if ! id "$PARAM_USERNAME" &>/dev/null; then
   exit 1
 fi
 
-GROUP_NAME="circleci-project"
+# Use workflow ID for uniqueness to avoid conflicts between concurrent jobs
+GROUP_NAME="circleci-project-${CIRCLE_WORKFLOW_ID}"
 
 echo "Creating shared group '$GROUP_NAME'..."
 sudo dseditgroup -o create "$GROUP_NAME" 2>/dev/null || true

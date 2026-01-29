@@ -14,6 +14,7 @@ source ./src/tests/helpers/load_extensions.bash
   export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
   export HOME="${BATS_TEST_TMPDIR}"
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -22,7 +23,7 @@ source ./src/tests/helpers/load_extensions.bash
   assert_output --partial "Adding 'distiller-restricted' to group"
   assert_output --partial "Access granted to"
   assert_file_contains "${BATS_TEST_TMPDIR}"/added_user "distiller-restricted"
-  assert_file_contains "${BATS_TEST_TMPDIR}"/chgrp_group "circleci-project"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/chgrp_group "circleci-project-test-workflow-12345"
 
   unstub id
   unstub sudo
@@ -42,6 +43,7 @@ source ./src/tests/helpers/load_extensions.bash
   export CIRCLE_WORKING_DIRECTORY="~/project"
   export HOME="${BATS_TEST_TMPDIR}"
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -55,6 +57,7 @@ source ./src/tests/helpers/load_extensions.bash
 @test "grant_project_access fails when CIRCLE_WORKING_DIRECTORY not set" {
   unset CIRCLE_WORKING_DIRECTORY
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -64,6 +67,7 @@ source ./src/tests/helpers/load_extensions.bash
 
 @test "grant_project_access fails when PARAM_USERNAME not set" {
   export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
   unset PARAM_USERNAME
 
   run ./src/scripts/grant_project_access.sh
@@ -72,10 +76,22 @@ source ./src/tests/helpers/load_extensions.bash
   assert_output --partial "PARAM_USERNAME is not set"
 }
 
+@test "grant_project_access fails when CIRCLE_WORKFLOW_ID not set" {
+  export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
+  export PARAM_USERNAME="distiller-restricted"
+  unset CIRCLE_WORKFLOW_ID
+
+  run ./src/scripts/grant_project_access.sh
+
+  assert_failure
+  assert_output --partial "CIRCLE_WORKFLOW_ID is not set"
+}
+
 @test "grant_project_access fails when directory does not exist" {
   export CIRCLE_WORKING_DIRECTORY="/nonexistent/path"
   export HOME="/tmp"
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -90,6 +106,7 @@ source ./src/tests/helpers/load_extensions.bash
   export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
   export HOME="${BATS_TEST_TMPDIR}"
   export PARAM_USERNAME="nonexistent-user"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -103,6 +120,7 @@ source ./src/tests/helpers/load_extensions.bash
   export CIRCLE_WORKING_DIRECTORY="/"
   export HOME="/tmp"
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
@@ -124,6 +142,7 @@ source ./src/tests/helpers/load_extensions.bash
   export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}"
   export HOME="${BATS_TEST_TMPDIR}"
   export PARAM_USERNAME="distiller-restricted"
+  export CIRCLE_WORKFLOW_ID="test-workflow-12345"
 
   run ./src/scripts/grant_project_access.sh
 
