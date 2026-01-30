@@ -30,13 +30,14 @@ source ./src/tests/helpers/load_extensions.bash
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="echo 'hello world'"
   export PARAM_WORKING_DIR=""
-  export CIRCLE_WORKING_DIRECTORY="/Users/distiller/project"
-  export HOME="/Users/distiller"
+  mkdir -p "${BATS_TEST_TMPDIR}/project"
+  export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}/project"
+  export HOME="${BATS_TEST_TMPDIR}"
 
   run ./src/scripts/run_command.sh
 
   assert_success
-  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "/Users/distiller/project"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "${BATS_TEST_TMPDIR}/project"
   assert_file_contains "${BATS_TEST_TMPDIR}"/command "echo"
 
   unstub sudo
@@ -48,14 +49,15 @@ source ./src/tests/helpers/load_extensions.bash
 
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="npm install"
-  export PARAM_WORKING_DIR="/custom/path"
-  export CIRCLE_WORKING_DIRECTORY="/Users/distiller/project"
-  export HOME="/Users/distiller"
+  mkdir -p "${BATS_TEST_TMPDIR}/custom/path"
+  export PARAM_WORKING_DIR="${BATS_TEST_TMPDIR}/custom/path"
+  export CIRCLE_WORKING_DIRECTORY="${BATS_TEST_TMPDIR}/project"
+  export HOME="${BATS_TEST_TMPDIR}"
 
   run ./src/scripts/run_command.sh
 
   assert_success
-  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "/custom/path"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "${BATS_TEST_TMPDIR}/custom/path"
   assert_file_contains "${BATS_TEST_TMPDIR}"/command "npm"
 
   unstub sudo
@@ -68,13 +70,14 @@ source ./src/tests/helpers/load_extensions.bash
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="ls"
   export PARAM_WORKING_DIR=""
+  mkdir -p "${BATS_TEST_TMPDIR}/home/project"
   export CIRCLE_WORKING_DIRECTORY="~/project"
-  export HOME="/Users/distiller"
+  export HOME="${BATS_TEST_TMPDIR}/home"
 
   run ./src/scripts/run_command.sh
 
   assert_success
-  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "/Users/distiller/project"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "${BATS_TEST_TMPDIR}/home/project"
 
   unstub sudo
 }
@@ -85,13 +88,14 @@ source ./src/tests/helpers/load_extensions.bash
 
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="echo test"
-  export PARAM_WORKING_DIR="/path/with spaces/here"
-  export HOME="/Users/distiller"
+  mkdir -p "${BATS_TEST_TMPDIR}/path/with spaces/here"
+  export PARAM_WORKING_DIR="${BATS_TEST_TMPDIR}/path/with spaces/here"
+  export HOME="${BATS_TEST_TMPDIR}"
 
   run ./src/scripts/run_command.sh
 
   assert_success
-  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "/path/with spaces/here"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "${BATS_TEST_TMPDIR}/path/with spaces/here"
   assert_file_contains "${BATS_TEST_TMPDIR}"/command "echo"
 
   unstub sudo
@@ -103,14 +107,28 @@ source ./src/tests/helpers/load_extensions.bash
 
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="echo test"
-  export PARAM_WORKING_DIR="/path/with'quote/here"
-  export HOME="/Users/distiller"
+  mkdir -p "${BATS_TEST_TMPDIR}/path/with'quote/here"
+  export PARAM_WORKING_DIR="${BATS_TEST_TMPDIR}/path/with'quote/here"
+  export HOME="${BATS_TEST_TMPDIR}"
 
   run ./src/scripts/run_command.sh
 
   assert_success
-  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "/path/with'quote/here"
+  assert_file_contains "${BATS_TEST_TMPDIR}"/work_dir "${BATS_TEST_TMPDIR}/path/with'quote/here"
   assert_file_contains "${BATS_TEST_TMPDIR}"/command "echo"
 
   unstub sudo
+}
+
+@test "run-command fails with clear error for nonexistent working directory" {
+  # No sudo stub needed - script should fail before reaching sudo
+  export PARAM_USERNAME="circleci"
+  export PARAM_COMMAND="echo test"
+  export PARAM_WORKING_DIR="/nonexistent/path/that/does/not/exist"
+  export HOME="/Users/distiller"
+
+  run ./src/scripts/run_command.sh
+
+  assert_failure
+  assert_output --partial "Error: working_directory does not exist: /nonexistent/path/that/does/not/exist"
 }
