@@ -4,7 +4,7 @@ source ./src/tests/helpers/load_extensions.bash
 
 @test "run-command param handling" {
   stub sudo \
-    "-u \* bash : cat > ${BATS_TEST_TMPDIR}/passed_input ; echo \$2 > ${BATS_TEST_TMPDIR}/user_arg"
+    "-u \* -H -E bash -l : cat > ${BATS_TEST_TMPDIR}/passed_input ; echo \$2 > ${BATS_TEST_TMPDIR}/user_arg"
 
   export PARAM_USERNAME="circleci"
   export PARAM_COMMAND="echo 'hello world'"

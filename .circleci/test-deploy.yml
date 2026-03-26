@@ -3,6 +3,12 @@ orbs:
   orb-tools: circleci/orb-tools@12.3
   mac-ip-allowlist: {}
 
+executors:
+  mac-26:
+    macos:
+      xcode: 26.1.1
+    resource_class: m4pro.medium
+
 filters: &filters
   tags:
     only: /.*/
@@ -54,6 +60,87 @@ jobs:
           command_name: "Test connectivity - distiller-restricted"
           command: curl -v -i https://1.1.1.1
 
+  test-brew:
+    executor: mac-26
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: |
+            echo "0.0.0.0/0" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - mac-ip-allowlist/run_command:
+          command_name: Test brew
+          command: brew install mtr
+
+  test-python-venv:
+    executor: mac-26
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: |
+            echo "0.0.0.0/0" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - run:
+          name: Transfer ownership to distiller-restricted
+          command: sudo chown -R distiller-restricted "$PWD"
+      - mac-ip-allowlist/run_command:
+          command_name: Test python venv
+          command: python -m venv .venv
+
+  test-function-exporting:
+    executor: mac-26
+    steps:
+      - checkout
+      - run:
+          name: Define test function
+          command: |
+            test_function() {
+              echo "test function executed"
+            }
+            declare -f test_function >> "$BASH_ENV"
+      - run:
+          name: Create passlist
+          command: echo "0.0.0.0/0" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - mac-ip-allowlist/run_command:
+          command_name: Test function exporting
+          command: |
+            if ! type test_function > /dev/null 2>&1
+            then
+              echo "Shell function was not exported to distiller-restricted"
+              exit 1
+            fi
+            echo "Shell function successfully exported to distiller-restricted"
+
+  test-env-exporting:
+    executor: mac-26
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: |
+            echo "0.0.0.0/0" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - mac-ip-allowlist/run_command:
+          command_name: Install gh
+          command: brew install gh
+      - mac-ip-allowlist/run_command:
+          command_name: Test gh release download
+          command: |
+            if [ -z "$CIRCLE_BRANCH" ]
+            then
+              echo "Environment variables failed to export"
+              exit 1
+            fi
+            echo "Environment variables successfully exported"
+
+
 workflows:
   test-deploy:
     jobs:
@@ -62,6 +149,14 @@ workflows:
           matrix:
             parameters:
               image: [15.4.0, 16.4.0, 26.0.0, 26.1.1]
+      - test-brew:
+          filters: *filters
+      - test-python-venv:
+          filters: *filters
+      - test-function-exporting:
+          filters: *filters
+      - test-env-exporting:
+          filters: *filters
       - orb-tools/pack:
           filters: *release-filters
       - orb-tools/publish:
@@ -73,5 +168,9 @@ workflows:
           requires:
             - orb-tools/pack
             - integration-test
+            - test-brew
+            - test-python-venv
+            - test-function-exporting
+            - test-env-exporting
           context: orb-publisher
           filters: *release-filters
