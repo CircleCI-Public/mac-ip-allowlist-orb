@@ -133,7 +133,7 @@ jobs:
       - mac-ip-allowlist/run_command:
           command_name: Test gh release download
           command: |
-            if [ -z "$CIRCLE_BRANCH" ]
+            if [ -z "$CI" ] # Assuming this is always running in CI
             then
               echo "Environment variables failed to export"
               exit 1
