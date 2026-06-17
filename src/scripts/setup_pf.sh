@@ -26,6 +26,12 @@ dns_server = "192.168.64.1"
 pass out log quick inet proto { tcp udp } from any to \$dns_server port domain
 EOF
 
+echo "Creating IPv6 Block Anchors"
+sudo tee /opt/circleci/firewall/pf.ipv6block >/dev/null <<EOF
+block in quick inet6 all
+block out quick inet6 all
+EOF
+
 echo "Creating Blocklist Anchors"
 sudo tee /opt/circleci/firewall/pf.blocklist >/dev/null <<EOF
 block in quick from <blocklist> user { $PARAM_USERNAME }
@@ -46,6 +52,9 @@ load anchor 'circleci.passlist' from '/opt/circleci/firewall/pf.passlist'
 
 anchor 'circleci.dns' label "DNS Anchor"
 load anchor 'circleci.dns'  from '/opt/circleci/firewall/pf.dns'
+
+anchor 'circleci.ipv6block' label "IPv6 Block"
+load anchor 'circleci.ipv6block' from '/opt/circleci/firewall/pf.ipv6block'
 
 anchor 'circleci.blocklist' label "Block List"
 load anchor 'circleci.blocklist' from '/opt/circleci/firewall/pf.blocklist'
