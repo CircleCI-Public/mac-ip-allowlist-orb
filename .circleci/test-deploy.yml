@@ -117,6 +117,25 @@ jobs:
             fi
             echo "Shell function successfully exported to distiller-restricted"
 
+  test-ipv6-blocked:
+    executor: mac-26
+    steps:
+      - checkout
+      - run:
+          name: Create passlist
+          command: echo "0.0.0.0/0" >> /tmp/passlist
+      - mac-ip-allowlist/setup:
+          passlist_file: /tmp/passlist
+      - run:
+          name: Verify IPv6 is blocked
+          command: |
+            if ping6 -c 1 2001:4860:4860::8888 > /dev/null 2>&1; then
+              echo "FAIL: IPv6 traffic reached Google DNS (2001:4860:4860::8888) - IPv6 is not blocked"
+              exit 1
+            else
+              echo "PASS: ping6 to 2001:4860:4860::8888 failed as expected - IPv6 is blocked"
+            fi
+
   test-env-exporting:
     executor: mac-26
     steps:
@@ -157,6 +176,8 @@ workflows:
           filters: *filters
       - test-env-exporting:
           filters: *filters
+      - test-ipv6-blocked:
+          filters: *filters
       - orb-tools/pack:
           filters: *release-filters
       - orb-tools/publish:
@@ -172,5 +193,6 @@ workflows:
             - test-python-venv
             - test-function-exporting
             - test-env-exporting
+            - test-ipv6-blocked
           context: orb-publisher
           filters: *release-filters

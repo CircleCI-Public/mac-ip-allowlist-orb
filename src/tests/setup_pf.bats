@@ -29,10 +29,14 @@ teardown() {
   assert_file_exists /opt/circleci/firewall/pf.tables
   assert_file_exists /opt/circleci/firewall/pf.passlist
   assert_file_exists /opt/circleci/firewall/pf.dns
+  assert_file_exists /opt/circleci/firewall/pf.ipv6block
+  assert_file_exists /opt/circleci/firewall/pf.blocklist
   assert_file_exists /opt/circleci/firewall/pf.conf
 
   assert_file_contains /opt/circleci/firewall/pf.passlist "pass in quick from <passlist> user { $PARAM_USERNAME }"
   assert_file_contains /opt/circleci/firewall/pf.passlist "pass out quick to <passlist> user { $PARAM_USERNAME }"
+  assert_file_contains /opt/circleci/firewall/pf.ipv6block "block in quick inet6 all"
+  assert_file_contains /opt/circleci/firewall/pf.ipv6block "block out quick inet6 all"
   assert_file_contains /opt/circleci/firewall/pf.blocklist "block in quick from <blocklist> user { $PARAM_USERNAME }"
   assert_file_contains /opt/circleci/firewall/pf.blocklist "block out quick from <blocklist> user { $PARAM_USERNAME }"
 }
